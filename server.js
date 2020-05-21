@@ -9,8 +9,22 @@ const app = express()
 //Express layouts para usar trozos de html que vayan en cada pagina necesaria
 const expressLayouts = require('express-ejs-layouts')
 
+const bodyParser = require('body-parser')
+
+/**
+ *      Ruteadores
+ */
 // El routeador principal, que maneja las rutas del index
 const indexRouter = require('./routes/index.js')
+
+// El routeador que maneja las rutas de los autores
+const authorRouter = require('./routes/authors.js')
+const libroRouter = require('./routes/libros.js')
+
+
+/**
+ *      Base de datos
+ */
 
 const mongoose = require('mongoose')
 
@@ -22,6 +36,9 @@ app.use(expressLayouts)
 
 //La carpeta accesible por todo el front
 app.use(express.static('public'))
+
+//El parseador de los parametros que se pasan a las rutas
+app.use(bodyParser.urlencoded({limit: '10mb', extended : false}))
 
 mongoose.connect(process.env.DATABASE_URL, { 
     useNewUrlParser : true,
@@ -35,6 +52,8 @@ db.once('open', () => console.log('conectado a mongoose'))
 
 // Se agrega el indexRouter para manejar el index
 app.use('/', indexRouter)
+app.use('/authors', authorRouter)
+app.use('/libros', libroRouter)
 
 
 //Se abre el servidor en el puerto que salga o en el 3000 si es devStart

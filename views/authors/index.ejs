@@ -1,0 +1,12 @@
+<h2>Buscar autores</h2>
+<form action="/authors" method="GET">
+<label for="nombre">Nombre:</label>
+<input type="text" name="nombre" id="nombre" value="<%= searchOptions.nombre %>">
+<button type="submit">Buscar</button>
+</form>
+
+<br>
+
+<% authors.forEach(author => { %>
+    <div><%= author.nombre %> ( Nacido el <%= author.fecnac.toLocaleString('es-ES').split(' ')[0] %> )</div>
+<% }) %>
