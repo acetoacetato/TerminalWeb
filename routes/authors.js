@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const Author = require('../models/author')
+const crypto = require('crypto')
 
 const sys = require('sys')
 const exec = require('child_process').exec;
@@ -23,15 +24,34 @@ router.get('/', async (req, res) => {
     
 })
 
+router.post('/path', async(req, res) => {
+    exec('echo|set /p="%cd%"', function(err, stdout, stderr){
+        res.send({'result': 'success', 'message': stdout});
+    })
+})
+
+//TODO: El proceso de autentificación de las sesiones
 router.post('/terminal', async (req, res) => {
     var comando = req.body.comando;
     console.log(req.body.comando);
+    var id = crypto.randomBytes(20).toString('hex');
+
+    // Ejecuta el comando que recibe
     exec(comando, function(err, stdout, stderr) {
         if(err){
             res.send({'result' : 'error', 'message': 'Problema interno, contacte al administrador'});
         }
-        console.log(stdout);
-        res.send({'result': 'success', 'message': stdout});
+        //console.log(stdout);
+        //Para obtener $PWD
+        exec('echo|set /p="%cd%"', function(err1, stdout1, stderr1){
+            var route = ''
+            if(err1){
+                route = stdout1
+            }
+            
+            res.send({'result': 'success', 'message': stdout, 'route': (route + '> ')});
+        })
+        
     });
 })
 

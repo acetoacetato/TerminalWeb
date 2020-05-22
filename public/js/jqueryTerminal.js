@@ -1572,7 +1572,7 @@
             mask: false,
             caseSensitiveSearch: true,
             historySize: 60,
-            prompt: '> ',
+            prompt: '',
             enabled: true,
             history: true,
             onPositionChange: $.noop,
@@ -6089,7 +6089,7 @@
     // nested formatting will always return different length so we silent the warning
     $.terminal.nested_formatting.__no_warn__ = true;
     $.terminal.defaults = {
-        prompt: '> ',
+        prompt: '',
         history: true,
         exit: true,
         clear: true,

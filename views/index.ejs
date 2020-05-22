@@ -6,9 +6,15 @@ Middle
 <script src="js/jqueryTerminal.js"></script>
 
 <script>
-
-jQuery(function($, undefined) {
-    $('#term_demo').terminal(function(command) {
+var terminalGui;
+jQuery(async function($, undefined) {
+    var path;
+    await $.post("/authors/path", function(response){
+        console.log(response)
+        path = response.message + '> ';
+    })
+    console.log(path)
+    terminalGui = $('#term_demo').terminal(function(command) {
         if (command !== '') {
             try {
                 console.log("holi");
@@ -19,6 +25,8 @@ jQuery(function($, undefined) {
                     comando : command
                 }, function (response){
                     that.echo(new String(response.message));
+                    
+                    terminalGui.set_prompt(response.route);
                 });
                 
 
@@ -31,8 +39,8 @@ jQuery(function($, undefined) {
     }, {
         greetings: 'Bienvenido, este es un simulador de un servidor en bash desde la web!\n escribe los comandos básicos para empezar',
         name: 'js_demo',
+        prompt: path,
         height: 200,
-        prompt: 'usuario> '
     });
 });
 
