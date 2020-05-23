@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/path', async(req, res) => {
-    exec('echo|set /p="%cd%"', function(err, stdout, stderr){
+    exec('printf "%s" $PWD', function(err, stdout, stderr){
         res.send({'result': 'success', 'message': stdout});
     })
 })
@@ -43,9 +43,9 @@ router.post('/terminal', async (req, res) => {
         }
         //console.log(stdout);
         //Para obtener $PWD
-        exec('echo|set /p="%cd%"', function(err1, stdout1, stderr1){
+        exec('printf "%s" $PWD', function(err1, stdout1, stderr1){
             var route = ''
-            if(err1){
+            if(!err1){
                 route = stdout1
             }
             

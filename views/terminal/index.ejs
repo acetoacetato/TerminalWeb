@@ -1,0 +1,53 @@
+<link type="text/css" rel="stylesheet" href="/css/jqueryTerminal.css">
+<script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+<div id="term_demo"></div>
+
+<script src="/js/jqueryTerminal.js"></script>
+
+<script>
+var terminalGui;
+jQuery(async function($, undefined) {
+    var path;
+    await $.post("/authors/path", function(response){
+        console.log(response)
+        path = response.message + '> ';
+    })
+    await $.post("/terminal/cookie", function(response){
+        console.log(response)
+        if(response.result == 'error'){
+            //TODO: recargar la pagina o algo
+            alert("MAYDAY MAYDAY");
+        }
+    })
+    console.log(path)
+    terminalGui = $('#term_demo').terminal(function(command) {
+        if (command !== '') {
+            try {
+                console.log("holi");
+                that = this
+                // Ejecuta el comando
+                // TODO: meter esto a un backend para poder probar que funke
+                $.post("/terminal/terminal",{
+                    comando : command
+                }, function (response){
+                    that.echo(new String(response.message));
+                    
+                    terminalGui.set_prompt(response.route);
+                });
+                
+
+            } catch(e) {
+                this.error(new String(e));
+            }
+        } else {
+            this.echo('');
+        }
+    }, {
+        greetings: 'Bienvenido, este es un simulador de un servidor en bash desde la web!\n escribe los comandos básicos para empezar',
+        name: 'js_demo',
+        prompt: path,
+        height: 200,
+    });
+});
+
+</script>

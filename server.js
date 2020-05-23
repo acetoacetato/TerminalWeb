@@ -20,7 +20,8 @@ const indexRouter = require('./routes/index.js')
 // El routeador que maneja las rutas de los autores
 const authorRouter = require('./routes/authors.js')
 const libroRouter = require('./routes/libros.js')
-
+const terminalRouter = require('./routes/terminal.js')
+const cookieParser = require('cookie-parser')
 
 /**
  *      Base de datos
@@ -33,6 +34,7 @@ app.set('view engine', 'ejs')
 app.set('views', __dirname + '/views')
 app.set('layout', 'layouts/layout')
 app.use(expressLayouts)
+app.use(cookieParser());
 
 //La carpeta accesible por todo el front
 app.use(express.static('public'))
@@ -42,7 +44,8 @@ app.use(bodyParser.urlencoded({limit: '10mb', extended : false}))
 
 mongoose.connect(process.env.DATABASE_URL, { 
     useNewUrlParser : true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    useFindAndModify: false
 })
 
 const db = mongoose.connection
@@ -54,6 +57,7 @@ db.once('open', () => console.log('conectado a mongoose'))
 app.use('/', indexRouter)
 app.use('/authors', authorRouter)
 app.use('/libros', libroRouter)
+app.use('/terminal', terminalRouter)
 
 
 //Se abre el servidor en el puerto que salga o en el 3000 si es devStart
