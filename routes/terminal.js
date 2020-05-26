@@ -46,14 +46,21 @@ async function runContainer() {
 
 }
 
+router.get("/testApi", (req, res, next) => {
+    res.send("API está funcionando");
+})
+
 // Ruta para preparar el entorno.
 //  Si la persona tiene una cookie se revisan los datos asociados
 //      o crea una instancia completamente nueva.
 router.post('/cookie', async (req, res) => {
-    var cookie = req.cookies.sessid;
-
+    console.log(req.body);
+    var { sessid } = req.body;
+    cookie = sessid;
+    
     // Si no tiene cookies, se le crea una instancia y se guarda en la db
-    if(cookie === undefined){
+    if(cookie === undefined || cookie == 'undefined'){
+        console.log("no tiene cookie");
         var randomNumber=Math.random().toString();
         randomNumber=randomNumber.substring(2,randomNumber.length);
         var containerId = -1;
@@ -74,7 +81,7 @@ router.post('/cookie', async (req, res) => {
             // Se guarda la sesión en la base de datos
             const newTerminal = await terminal.save()
             // Se manda un resultado satisfactorio
-            res.send({'result': 'success', 'message': 'creado nuevo terminal'});
+            res.send({'result': 'success', 'message': 'creado nuevo terminal', 'sessid' : randomNumber});
             return;
         }catch {
             // Se manda el error para que la vista lo maneje
@@ -93,7 +100,7 @@ router.post('/cookie', async (req, res) => {
             // Se crea el contenedor
             var dockerId = await runContainer();
             // Se crea la instancia de la sesión de la db
-            var terminal = new Terminal({'sessid' : req.cookies.sessid, 'containerid': dockerId});
+            var terminal = new Terminal({'sessid' : cookie, 'containerid': dockerId});
             try {
                 // Se guarda la sesión en la db
                 const newTerminal = await terminal.save()
@@ -113,11 +120,11 @@ router.post('/cookie', async (req, res) => {
         exec('docker ps | grep ' + dockerId + ' | wc -l', async function(err, stdout, stderr) {
 
             // Si falla el obtener el docker por alguna razón, se intenta crear otro
-            //  FIXME: arreglar eso
+            //  1FIXME: arreglar eso
             if(err){
                 console.log('falló al obtener el docker');
-                var dockerId = await runContainer();
-                var terminal = new Terminal({'sessid' : req.cookies.sessid, 'containerid': dockerId});
+                dockerId = await runContainer();
+                var terminal = new Terminal({'sessid' : cookie, 'containerid': dockerId});
                 await Terminal.save();
                 res.send({'result': 'succes', 'message': 'generado automaticamente'});
                 return;
@@ -127,19 +134,19 @@ router.post('/cookie', async (req, res) => {
                 exec('docker run -t -d ubuntu', async function(err, stdout, stderr) {
                     console.log('no encuentra docker')
                     if(err){
-                        res.render('terminal', {'success' : false});
+                        res.send({'result' : 'error', 'message': 'contacte al adminsitrador'});
                         console.log('falló al obtener el docker');
                         return;
                     }
                     dockerId = stdout;
                     // Se le actualiza la referencia al docker en la base de datos
-                    await Terminal.findOneAndUpdate({'sessid' : cookie}, {'containerid' : dockerId}, options={'new' : false});
+                    await Terminal.findOneAndUpdate({'sessid' : cookie}, {'containerid' : dockerId, 'path': '/'}, options={'new' : false});
 
                 });
             }
         });
-
-        res.send({'result': 'success', 'message': 'se carga un terminal existente'});
+        //exec(`docker exec -i ${dockerId}`)
+        res.send({'result': 'success', 'message': 'se carga un terminal existente', 'path' : terminales[0].path});
         return;
         console.log('cookie n ' + cookie);
         
@@ -153,7 +160,8 @@ router.post('/cookie', async (req, res) => {
 router.post('/terminal', async (req, res) => {
     var comando = req.body.comando;
     console.log(req.body.comando);
-    var cookie = req.cookies.sessid;
+    var cookie = req.body.sessid;
+    
     if(!cookie){
         res.send({"result": "error", "message": "no se ha iniciado una sesión, contacte con el administrador."});
         return;
@@ -180,14 +188,18 @@ router.post('/terminal', async (req, res) => {
         // Ejecuta el comando que recibe
         //    docker exec -i cf bash  -c 'cd home && ls'
         //docker exec -i cf53cfad70fe bash -c 'cd ..'
-        exec(`docker exec -i  ${ dockerId } bash -c 'cd ${ path } && ${ comando } && echo "" && echo $PWD'`, async function(err, stdout, stderr) {
+        var randomNumber=Math.random().toString();
+        exec(`docker exec -i  ${ dockerId } bash -c 'cd ${ path } && ${ comando }; echo "${randomNumber}" && echo $PWD'`, async function(err, stdout, stderr) {
             console.log(`docker exec -i  ${ dockerId } bash -c 'cd ${ path } && ${ comando } && echo "" && echo $PWD'`);
-            console.log(stdout);
-            console.log(stderr);
+            
+            
             stdout = stdout.trim();
+            //Dos veces para sacar las últimas 2 líneas
             salida = stdout.substring(0, stdout.lastIndexOf("\n"))
-            lines = stdout.split("\n");
-            path = lines[lines.length -1];
+            salida = stdout.substring(0, salida.lastIndexOf("\n"))
+            lines = stdout.split(/\r\n|\r|\n/);
+
+            path = (lines.length > 1)? lines[lines.length -1]:path;
             console.log('path = ' + path);
 
             if(terminales[0].path != path){
@@ -198,7 +210,7 @@ router.post('/terminal', async (req, res) => {
                 return;
             }
                 
-            res.send({'result': 'success', 'message': salida, 'route': (path + '> ')});
+            res.send({'result': 'success', 'message': salida, 'path': (path)});
             return;
             
         });
