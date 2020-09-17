@@ -120,7 +120,6 @@ router.post('/cookie', async (req, res) => {
         exec('docker ps | grep ' + dockerId + ' | wc -l', async function(err, stdout, stderr) {
 
             // Si falla el obtener el docker por alguna razón, se intenta crear otro
-            //  1FIXME: arreglar eso
             if(err){
                 console.log('falló al obtener el docker');
                 dockerId = await runContainer();
@@ -159,6 +158,9 @@ router.post('/cookie', async (req, res) => {
 //TODO: arreglar lo que hace cuando hay errores.
 router.post('/terminal', async (req, res) => {
     var comando = req.body.comando;
+    if(comando.replace(/[\\u005c]/g, "").length < 1){
+        comando = "echo ''";
+    }
     console.log(req.body.comando);
     var cookie = req.body.sessid;
     
@@ -189,11 +191,15 @@ router.post('/terminal', async (req, res) => {
         //    docker exec -i cf bash  -c 'cd home && ls'
         //docker exec -i cf53cfad70fe bash -c 'cd ..'
         var randomNumber=Math.random().toString();
-        exec(`docker exec -i  ${ dockerId } bash -c 'cd ${ path } && ${ comando }; echo "${randomNumber}" && echo $PWD'`, async function(err, stdout, stderr) {
-            console.log(`docker exec -i  ${ dockerId } bash -c 'cd ${ path } && ${ comando } && echo "" && echo $PWD'`);
+        exec(`docker exec -i  ${ dockerId } bash -c 'cd ${ path } && ${ comando } ; echo "${randomNumber}" && echo $PWD'`, async function(err, stdout, stderr) {
+            console.log(`docker exec -i  ${ dockerId } bash -c 'cd ${ path } && ${ comando } ; echo "" && echo $PWD'`);
             
             
             stdout = stdout.trim();
+            if(stdout.toLowerCase().search("syntax error") != -1){
+                path = (lines.length > 1)? lines[lines.length -1]:path;
+                console.log('path = ' + path);
+            } 
             //Dos veces para sacar las últimas 2 líneas
             salida = stdout.substring(0, stdout.lastIndexOf("\n"))
             salida = stdout.substring(0, salida.lastIndexOf("\n"))
@@ -221,6 +227,20 @@ router.post('/terminal', async (req, res) => {
 
     
 })
+
+//TODO: hacer esto y lo otro
+router.get('/tarea', (req, res) => {
+
+});
+
+/*
+    Comprueba que la tarea se haya realizado de forma correcta.
+        Para ello compara la salida del script de comprobar con la respuesta.
+*/
+async function compruebaTarea(cookie, idTarea){
+    const terminales = await Terminal.find({ 'sessid': cookie });
+
+}
 
 
 // Nuevo autor

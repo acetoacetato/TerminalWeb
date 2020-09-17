@@ -6,7 +6,20 @@ if(process.env.NODE_ENV !== 'production'){
 const express = require('express')
 const app = express()
 
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
 
+const privateKey = fs.readFileSync('/etc/letsencrypt/live/abmodel.cl/privkey.pem', 'utf8');
+const certificate = fs.readFileSync('/etc/letsencrypt/live/abmodel.cl/cert.pem', 'utf8');
+const ca = fs.readFileSync('/etc/letsencrypt/live/abmodel.cl/chain.pem', 'utf8');
+
+
+const credentials = {
+	key: privateKey,
+	cert: certificate,
+	ca: ca
+};
 
 //Express layouts para usar trozos de html que vayan en cada pagina necesaria
 const expressLayouts = require('express-ejs-layouts')
@@ -25,6 +38,7 @@ const indexRouter = require('./routes/index.js')
 const authorRouter = require('./routes/authors.js')
 const libroRouter = require('./routes/libros.js')
 const terminalRouter = require('./routes/terminal.js')
+const ejercicioRouter = require('./routes/ejercicio.js')
 const cookieParser = require('cookie-parser')
 
 /**
@@ -59,6 +73,9 @@ mongoose.connect(process.env.DATABASE_URL, {
     useFindAndModify: false
 })
 
+app.use(express.static(__dirname, { dotfiles: 'allow' } ));
+
+
 const db = mongoose.connection
 db.on('error', err => console.error(err))
 db.once('open', () => console.log('conectado a mongoose'))
@@ -69,9 +86,25 @@ app.use('/', indexRouter)
 app.use('/authors', authorRouter)
 app.use('/libros', libroRouter)
 app.use('/terminal', terminalRouter)
+app.use('/ejercicio', ejercicioRouter)
 
+
+// Starting both http & https servers
+const httpServer = http.createServer(app);
+const httpsServer = https.createServer(credentials, app);
 
 //Se abre el servidor en el puerto que salga o en el 9000 si es devStart
-app.listen(process.env.PORT || 9000)
+
+//app.listen(process.env.PORT || 80)
+
+
+
+httpServer.listen(80, () => {
+	console.log('HTTP Server running on port 80');
+});
+
+httpsServer.listen(443, () => {
+	console.log('HTTPS Server running on port 443');
+});
 
 
